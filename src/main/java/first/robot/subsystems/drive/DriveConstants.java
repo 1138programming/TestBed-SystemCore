@@ -5,13 +5,13 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-package org.littletonrobotics.frc2025.subsystems.drive;
+package first.robot.subsystems.drive;
 
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.util.Units;
+import org.wpilib.math.geometry.Rotation2d;
+import org.wpilib.math.geometry.Translation2d;
+import org.wpilib.math.util.Units;
 import lombok.Builder;
-import org.littletonrobotics.frc2025.Constants;
+import first.robot.Constants;
 import org.littletonrobotics.frc2025.Constants.RobotType;
 
 public class DriveConstants {

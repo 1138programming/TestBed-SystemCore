@@ -5,13 +5,14 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-package org.littletonrobotics.frc2025.subsystems.drive;
+package first.robot.subsystems.drive;
 
-import edu.wpi.first.wpilibj.OnboardIMU;
-import edu.wpi.first.wpilibj.OnboardIMU.MountOrientation;
+import org.wpilib.hardware.imu.OnboardIMU;
+import org.wpilib.hardware.imu.OnboardIMU.MountOrientation;
+
 
 public class GyroIOOnboardIMU implements GyroIO {
-  private final OnboardIMU imu = new OnboardIMU(MountOrientation.kFlat);
+  private final OnboardIMU imu = new OnboardIMU(MountOrientation.FLAT);
 
   @Override
   public void updateInputs(GyroIOInputs inputs) {
