@@ -5,15 +5,15 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-package org.littletonrobotics.frc2025.subsystems.drive;
+package first.robot.subsystems.drive;
 
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-import org.littletonrobotics.frc2025.Constants;
+import org.wpilib.math.util.MathUtil;
+import org.wpilib.math.controller.PIDController;
+import org.wpilib.math.geometry.Rotation2d;
+import org.wpilib.math.system.DCMotor;
+import org.wpilib.math.system.Models;
+import org.wpilib.simulation.DCMotorSim;
+import first.robot.Constants;
 
 /**
  * Physics sim implementation of module IO. The sim models are configured using a set of module
@@ -25,12 +25,12 @@ public class ModuleIOSim implements ModuleIO {
 
   private final DCMotorSim driveSim =
       new DCMotorSim(
-          LinearSystemId.createDCMotorSystem(
+          Models.singleJointedArmFromPhysicalConstants(
               driveMotorModel, 0.025, ModuleIOTalonFX.driveReduction),
           driveMotorModel);
   private final DCMotorSim turnSim =
       new DCMotorSim(
-          LinearSystemId.createDCMotorSystem(turnMotorModel, 0.004, ModuleIOTalonFX.turnReduction),
+          Models.singleJointedArmFromPhysicalConstants(turnMotorModel, 0.004, ModuleIOTalonFX.turnReduction),
           turnMotorModel);
 
   private boolean driveClosedLoop = false;
@@ -61,8 +61,8 @@ public class ModuleIOSim implements ModuleIO {
     }
 
     // Update simulation state
-    driveSim.setInputVoltage(MathUtil.clamp(driveAppliedVolts, -12.0, 12.0));
-    turnSim.setInputVoltage(MathUtil.clamp(turnAppliedVolts, -12.0, 12.0));
+    driveSim.setInputVoltage(Math.clamp(driveAppliedVolts, -12.0, 12.0));
+    turnSim.setInputVoltage(Math.clamp(turnAppliedVolts, -12.0, 12.0));
     driveSim.update(Constants.loopPeriodSecs);
     turnSim.update(Constants.loopPeriodSecs);
 

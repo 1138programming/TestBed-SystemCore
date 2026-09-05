@@ -7,14 +7,15 @@
 
 package first.robot.subsystems.drive;
 
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import org.wpilib.math.controller.SimpleMotorFeedforward;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.kinematics.SwerveModulePosition;
-import org.wpilib.math.kinematics.SwerveModuleState;
+import org.wpilib.math.kinematics.SwerveModuleVelocity;
 import org.wpilib.math.util.Units;
-import edu.wpi.first.wpilibj.Alert;
-import edu.wpi.first.wpilibj.Alert.AlertType;
-import edu.wpi.first.wpilibj.DriverStation;
+import org.wpilib.driverstation.Alert;
+import org.wpilib.driverstation.Alert.Level;
+import org.wpilib.driverstation.DriverStation;
+import org.wpilib.driverstation.internal.DriverStationBackend;
 import org.littletonrobotics.junction.Logger;
 
 public class Module {
@@ -34,10 +35,10 @@ public class Module {
     driveDisconnectedAlert =
         new Alert(
             "Disconnected drive motor on module " + Integer.toString(index) + ".",
-            AlertType.kError);
+            Level.MEDIUM);
     turnDisconnectedAlert =
         new Alert(
-            "Disconnected turn motor on module " + Integer.toString(index) + ".", AlertType.kError);
+            "Disconnected turn motor on module " + Integer.toString(index) + ".", Level.MEDIUM);
   }
 
   public void periodic() {
@@ -49,19 +50,19 @@ public class Module {
     turnDisconnectedAlert.set(!inputs.turnConnected);
 
     // Coast when disabled
-    if (DriverStation.isDisabled()) {
+    if (DriverStationBackend.isDisabled()) {
       io.coast();
     }
   }
 
   /** Runs the module with the specified setpoint state. Mutates the state to optimize it. */
-  public void runSetpoint(SwerveModuleState state) {
+  public void runSetpoint(SwerveModuleVelocity state) {
     // Optimize velocity setpoint
     state.optimize(getAngle());
     state.cosineScale(inputs.turnPosition);
 
     // Apply setpoints
-    double speedRadPerSec = state.speed / DriveConstants.wheelRadius;
+    double speedRadPerSec = state.velocity / DriveConstants.wheelRadius;
     io.runDriveVelocity(speedRadPerSec, ffModel.calculate(speedRadPerSec));
     io.runTurnPosition(state.angle);
   }
@@ -99,8 +100,8 @@ public class Module {
   }
 
   /** Returns the module state (turn angle and drive velocity). */
-  public SwerveModuleState getState() {
-    return new SwerveModuleState(getVelocityMetersPerSec(), getAngle());
+  public SwerveModuleVelocity getState() {
+    return new SwerveModuleVelocity(getVelocityMetersPerSec(), getAngle());
   }
 
   /** Returns the module position in radians. */

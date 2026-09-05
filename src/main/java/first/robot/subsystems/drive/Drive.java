@@ -20,6 +20,7 @@ import org.wpilib.math.numbers.N1;
 import org.wpilib.math.numbers.N3;
 import org.wpilib.driverstation.Alert;
 import org.wpilib.driverstation.Alert.Level;
+import first.robot.Constants.Mode;
 import org.wpilib.driverstation.DriverStation;
 import org.wpilib.system.Timer;
 import org.wpilib.command2.SubsystemBase;
@@ -28,14 +29,15 @@ import java.util.concurrent.locks.ReentrantLock;
 import first.robot.Constants;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
+import first.robot.subsystems.drive.GyroIO.GyroIOInputs;
 
 public class Drive extends SubsystemBase {
   static final Lock odometryLock = new ReentrantLock();
   private final GyroIO gyroIO;
-  private final GyroIOInputsAutoLogged gyroInputs = new GyroIOInputsAutoLogged();
+  private final GyroIOInputs gyroInputs = new GyroIOInputs();
   private final Module[] modules = new Module[4]; // FL, FR, BL, BR
   private final Alert gyroDisconnectedAlert =
-      new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
+      new Alert("Disconnected gyro, using kinematics as fallback.", Level.MEDIUM);
 
   private SwerveDriveKinematics kinematics =
       new SwerveDriveKinematics(DriveConstants.moduleTranslations);
@@ -75,8 +77,8 @@ public class Drive extends SubsystemBase {
 
     // Log empty setpoint states when disabled
     if (DriverStation.isDisabled()) {
-      Logger.recordOutput("SwerveStates/Setpoints", new SwerveModuleState[] {});
-      Logger.recordOutput("SwerveStates/SetpointsOptimized", new SwerveModuleState[] {});
+      Logger.recordOutput("SwerveStates/Setpoints", new SwerveModuleVelocity[] {});
+      Logger.recordOutput("SwerveStates/SetpointsOptimized", new SwerveModuleVelocity[] {});
     }
 
     // Calculate odometry
@@ -110,15 +112,15 @@ public class Drive extends SubsystemBase {
    *
    * @param speeds Speeds in meters/sec
    */
-  public void runVelocity(ChassisSpeeds speeds) {
+  public void runVelocity(ChassisVelocities speeds) {
     // Calculate module setpoints
     ChassisVelocities discreteSpeeds = speeds.discretize(Constants.loopPeriodSecs);
-    SwerveModuleVelocity[] setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds);
-    SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, DriveConstants.maxLinearSpeed);
+    SwerveModuleVelocity[] setpointStates = kinematics.toSwerveModuleVelocities(discreteSpeeds);
+    SwerveDriveKinematics.desaturateWheelVelocities(setpointStates, DriveConstants.maxLinearSpeed);
 
     // Log unoptimized setpoints and setpoint speeds
     Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
-    Logger.recordOutput("SwerveChassisSpeeds/Setpoints", discreteSpeeds);
+    Logger.recordOutput("SwerveChassisVelocities/Setpoints", discreteSpeeds);
 
     // Send setpoints to modules
     for (int i = 0; i < 4; i++) {
@@ -138,7 +140,7 @@ public class Drive extends SubsystemBase {
 
   /** Stops the drive. */
   public void stop() {
-    runVelocity(new ChassisSpeeds());
+    runVelocity(new ChassisVelocities());
   }
 
   /**
@@ -156,10 +158,10 @@ public class Drive extends SubsystemBase {
 
   /** Returns the module states (turn angles and drive velocities) for all of the modules. */
   @AutoLogOutput(key = "SwerveStates/Measured")
-  private SwerveModuleState[] getModuleStates() {
-    SwerveModuleState[] states = new SwerveModuleState[4];
+  private SwerveModuleVelocity[] getModuleVelocities() {
+    SwerveModuleVelocity[] states = new SwerveModuleVelocity[4];
     for (int i = 0; i < 4; i++) {
-      states[i] = modules[i].getState();
+      states[i] = modules[i].getVelocity();
     }
     return states;
   }
@@ -174,9 +176,9 @@ public class Drive extends SubsystemBase {
   }
 
   /** Returns the measured chassis speeds of the robot. */
-  @AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
-  private ChassisSpeeds getChassisSpeeds() {
-    return kinematics.toChassisSpeeds(getModuleStates());
+  @AutoLogOutput(key = "SwerveChassisVelocities/Measured")
+  private ChassisVelocities getChassisVelocities() {
+    return kinematics.toChassisVelocities(getModuleVelocities());
   }
 
   /** Returns the position of each module in radians. */

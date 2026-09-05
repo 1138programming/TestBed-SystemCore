@@ -12,7 +12,7 @@ import org.wpilib.math.geometry.Translation2d;
 import org.wpilib.math.util.Units;
 import lombok.Builder;
 import first.robot.Constants;
-import org.littletonrobotics.frc2025.Constants.RobotType;
+import first.robot.Constants.RobotType;;
 
 public class DriveConstants {
   public static final double trackWidthX = Units.inchesToMeters(20.75);
