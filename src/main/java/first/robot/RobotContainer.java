@@ -11,7 +11,7 @@ import org.wpilib.driverstation.GenericHID;
 // import org.wpilib.wpilibj.XboxController;
 import org.wpilib.command2.Command;
 import org.wpilib.command2.Commands;
-// import org.wpilib.wpilibj2.command.button.CommandXboxController;
+import org.wpilib.driverstation.Gamepad;
 import first.robot.commands.DriveCommands;
 import first.robot.subsystems.drive.Drive;
 import first.robot.subsystems.drive.DriveConstants;
@@ -33,7 +33,7 @@ public class RobotContainer {
   private Drive drive;
 
   // Controller
-  // private final CommandXboxController controller = new CommandXboxController(0);
+  private final Gamepad controller = new Gamepad(0);
 
   // Dashboard inputs
   private final LoggedDashboardChooser<Command> autoChooser;
