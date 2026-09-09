@@ -23,7 +23,13 @@ public class Robot extends LoggedRobot {
   private RobotContainer robotContainer;
 
   public Robot() {
+    // Run the loop at the period the rest of the code assumes (see Constants.loopPeriodSecs).
+    super(Constants.loopPeriodSecs);
 
+    // Record build/runtime metadata so logs can be traced back to a configuration
+    Logger.recordMetadata("RobotType", Constants.getRobot().toString());
+    Logger.recordMetadata("RuntimeMode", Constants.getMode().toString());
+    Logger.recordMetadata("TuningMode", Boolean.toString(Constants.tuningMode));
 
     // Set up data receivers & replay source
     switch (Constants.getMode()) {
@@ -95,9 +101,9 @@ public class Robot extends LoggedRobot {
   public void autonomousInit() {
     autonomousCommand = robotContainer.getAutonomousCommand();
 
-    // schedule the autonomous command (example)
+    // schedule the autonomous command (Command.schedule() was removed in 2027)
     if (autonomousCommand != null) {
-      autonomousCommand.schedule();
+      CommandScheduler.getInstance().schedule(autonomousCommand);
     }
   }
 

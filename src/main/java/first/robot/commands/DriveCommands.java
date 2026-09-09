@@ -10,9 +10,8 @@ import org.wpilib.math.geometry.Translation2d;
 import org.wpilib.math.kinematics.ChassisVelocities;
 import org.wpilib.math.trajectory.TrapezoidProfile;
 import org.wpilib.math.util.Units;
-import org.wpilib.driverstation.DriverStation;
-import org.wpilib.driverstation.internal.DriverStationBackend;
 import org.wpilib.driverstation.Alliance;
+import org.wpilib.driverstation.MatchState;
 import org.wpilib.system.Timer;
 import org.wpilib.command2.Command;
 import org.wpilib.command2.Commands;
@@ -78,9 +77,7 @@ public class DriveCommands {
                   linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
                   linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
                   omega * drive.getMaxAngularSpeedRadPerSec());
-          boolean isFlipped =
-              DriverStationBackend.getAlliance().isPresent()
-                  && DriverStationBackend.getAlliance().get() == Alliance.RED;
+          boolean isFlipped = MatchState.getAlliance().orElse(Alliance.BLUE) == Alliance.RED;
           drive.runVelocity(
               speeds.toRobotRelative(
                   isFlipped
@@ -128,9 +125,7 @@ public class DriveCommands {
                       linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
                       linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
                       omega);
-              boolean isFlipped =
-                  DriverStationBackend.getAlliance().isPresent()
-                      && DriverStationBackend.getAlliance().get() == Alliance.RED;
+              boolean isFlipped = MatchState.getAlliance().orElse(Alliance.BLUE) == Alliance.RED;
               drive.runVelocity(
                   speeds.toRobotRelative(
                       isFlipped

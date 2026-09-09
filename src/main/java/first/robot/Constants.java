@@ -4,35 +4,50 @@
 
 package first.robot;
 
-import org.wpilib.driverstation.Alert;
-import org.wpilib.driverstation.Alert.Level;
 import org.wpilib.framework.RobotBase;
+import org.wpilib.util.Alert;
+import org.wpilib.util.Alert.Level;
 
 /**
  * This class defines the runtime mode used by AdvantageKit. The mode is always "real" when running
- * on a roboRIO. Change the value of "simMode" to switch between "sim" (physics sim) and "replay"
- * (log replay from a file).
+ * on SystemCore. Change the value of {@link #simMode} to switch between "sim" (physics sim) and
+ * "replay" (log replay from a file).
  */
 public final class Constants {
-  public static final double loopPeriodSecs = 0.005;
+  /**
+   * Robot loop period. This is handed to {@code LoggedRobot} in {@link Robot}, so the value used
+   * for velocity discretization and Phoenix status frame rates always matches the real loop rate.
+   */
+  public static final double loopPeriodSecs = 0.02;
+
+  /** Which physical robot the code is running on. Selects hardware IDs. */
   private static RobotType robotType = RobotType.DEVBOT;
+
+  /** Enables tuning dashboard inputs. Must be false when merging. */
   public static final boolean tuningMode = false;
+
+  /** Mode used when not running on real hardware. Set to REPLAY to replay a log instead. */
+  public static final Mode simMode = Mode.SIM;
 
   @SuppressWarnings("resource")
   public static RobotType getRobot() {
     if (!disableHAL && RobotBase.isReal() && robotType == RobotType.SIMBOT) {
-      new Alert("Invalid robot selected, using competition robot as default.", Level.MEDIUM)
+      new Alert(
+              "invalidRobotType",
+              "Invalid robot selected, using competition robot as default.",
+              Level.MEDIUM)
           .set(true);
       robotType = RobotType.DEVBOT;
     }
     return robotType;
   }
 
+  /**
+   * Returns the current runtime mode. Real hardware is always {@link Mode#REAL}; off-robot this
+   * follows {@link #simMode} so that the physics simulation actually runs by default.
+   */
   public static Mode getMode() {
-    return switch (robotType) {
-      case DEVBOT -> RobotBase.isReal() ? Mode.REAL : Mode.REPLAY;
-      case SIMBOT -> Mode.SIM;
-    };
+    return RobotBase.isReal() ? Mode.REAL : simMode;
   }
 
   public enum Mode {
@@ -76,4 +91,6 @@ public final class Constants {
       }
     }
   }
+
+  private Constants() {}
 }

@@ -7,17 +7,17 @@
 
 package first.robot.subsystems.drive;
 
-import org.wpilib.math.util.MathUtil;
+import first.robot.Constants;
 import org.wpilib.math.controller.PIDController;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.system.DCMotor;
 import org.wpilib.math.system.Models;
 import org.wpilib.simulation.DCMotorSim;
-import first.robot.Constants;
 
 /**
- * Physics sim implementation of module IO. The sim models are configured using a set of module
- * constants from Phoenix. Simulation is always based on voltage control.
+ * Physics sim implementation of module IO. Simulation is always based on voltage control, so it
+ * uses the {@code *SimK*} gains from {@link DriveConstants} rather than the torque-current gains
+ * used on the real robot.
  */
 public class ModuleIOSim implements ModuleIO {
   private static final DCMotor driveMotorModel = DCMotor.getKrakenX60Foc(1);
@@ -30,14 +30,17 @@ public class ModuleIOSim implements ModuleIO {
           driveMotorModel);
   private final DCMotorSim turnSim =
       new DCMotorSim(
-          Models.singleJointedArmFromPhysicalConstants(turnMotorModel, 0.004, ModuleIOTalonFX.turnReduction),
+          Models.singleJointedArmFromPhysicalConstants(
+              turnMotorModel, 0.004, ModuleIOTalonFX.turnReduction),
           turnMotorModel);
 
   private boolean driveClosedLoop = false;
   private boolean turnClosedLoop = false;
-  private PIDController driveController = new PIDController(0, 0, 0);
-  private PIDController turnController = new PIDController(0, 0, 0);
-  private double driveFFVolts = 0;
+  private final PIDController driveController =
+      new PIDController(DriveConstants.driveSimKp, 0.0, DriveConstants.driveSimKd);
+  private final PIDController turnController =
+      new PIDController(DriveConstants.turnSimKp, 0.0, DriveConstants.turnSimKd);
+  private double driveFFVolts = 0.0;
   private double driveAppliedVolts = 0.0;
   private double turnAppliedVolts = 0.0;
 
@@ -71,11 +74,16 @@ public class ModuleIOSim implements ModuleIO {
     inputs.driveVelocityRadPerSec = driveSim.getAngularVelocity();
     inputs.driveAppliedVolts = driveAppliedVolts;
     inputs.driveSupplyCurrentAmps = Math.abs(driveSim.getCurrentDraw());
+    inputs.driveTorqueCurrentAmps = driveSim.getCurrentDraw();
 
     inputs.turnConnected = true;
+    inputs.turnEncoderConnected = true;
     inputs.turnPosition = new Rotation2d(turnSim.getAngularPosition());
     inputs.turnAbsolutePosition = new Rotation2d(turnSim.getAngularPosition());
+    inputs.turnVelocityRadPerSec = turnSim.getAngularVelocity();
+    inputs.turnAppliedVolts = turnAppliedVolts;
     inputs.turnSupplyCurrentAmps = Math.abs(turnSim.getCurrentDraw());
+    inputs.turnTorqueCurrentAmps = turnSim.getCurrentDraw();
   }
 
   @Override
@@ -101,5 +109,13 @@ public class ModuleIOSim implements ModuleIO {
   public void runTurnPosition(Rotation2d rotation) {
     turnClosedLoop = true;
     turnController.setSetpoint(rotation.getRadians());
+  }
+
+  @Override
+  public void coast() {
+    driveClosedLoop = false;
+    turnClosedLoop = false;
+    driveAppliedVolts = 0.0;
+    turnAppliedVolts = 0.0;
   }
 }

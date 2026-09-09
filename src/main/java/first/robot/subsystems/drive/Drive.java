@@ -18,10 +18,10 @@ import org.wpilib.math.kinematics.SwerveModulePosition;
 import org.wpilib.math.kinematics.SwerveModuleVelocity;
 import org.wpilib.math.numbers.N1;
 import org.wpilib.math.numbers.N3;
-import org.wpilib.driverstation.Alert;
-import org.wpilib.driverstation.Alert.Level;
+import org.wpilib.util.Alert;
+import org.wpilib.util.Alert.Level;
 import first.robot.Constants.Mode;
-import org.wpilib.driverstation.DriverStation;
+import org.wpilib.driverstation.RobotState;
 import org.wpilib.system.Timer;
 import org.wpilib.command2.SubsystemBase;
 import java.util.concurrent.locks.Lock;
@@ -29,7 +29,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import first.robot.Constants;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
-import first.robot.subsystems.drive.GyroIO.GyroIOInputs;
 
 public class Drive extends SubsystemBase {
   static final Lock odometryLock = new ReentrantLock();
@@ -37,7 +36,8 @@ public class Drive extends SubsystemBase {
   private final GyroIOInputsAutoLogged gyroInputs = new GyroIOInputsAutoLogged();
   private final Module[] modules = new Module[4]; // FL, FR, BL, BR
   private final Alert gyroDisconnectedAlert =
-      new Alert("Disconnected gyro, using kinematics as fallback.", Level.MEDIUM);
+      new Alert(
+          "gyroDisconnected", "Disconnected gyro, using kinematics as fallback.", Level.MEDIUM);
 
   private SwerveDriveKinematics kinematics =
       new SwerveDriveKinematics(DriveConstants.moduleTranslations);
@@ -76,7 +76,7 @@ public class Drive extends SubsystemBase {
     odometryLock.unlock();
 
     // Log empty setpoint states when disabled
-    if (DriverStation.isDisabled()) {
+    if (RobotState.isDisabled()) {
       Logger.recordOutput("SwerveStates/Setpoints", new SwerveModuleVelocity[] {});
       Logger.recordOutput("SwerveStates/SetpointsOptimized", new SwerveModuleVelocity[] {});
     }
@@ -115,20 +115,24 @@ public class Drive extends SubsystemBase {
   public void runVelocity(ChassisVelocities speeds) {
     // Calculate module setpoints
     ChassisVelocities discreteSpeeds = speeds.discretize(Constants.loopPeriodSecs);
-    SwerveModuleVelocity[] setpointStates = kinematics.toSwerveModuleVelocities(discreteSpeeds);
-    SwerveDriveKinematics.desaturateWheelVelocities(setpointStates, DriveConstants.maxLinearSpeed);
+    // desaturateWheelVelocities returns a new array rather than mutating in place, so its result
+    // must be used or the speed limit is silently ignored.
+    SwerveModuleVelocity[] setpointStates =
+        SwerveDriveKinematics.desaturateWheelVelocities(
+            kinematics.toSwerveModuleVelocities(discreteSpeeds), DriveConstants.maxLinearSpeed);
 
     // Log unoptimized setpoints and setpoint speeds
     Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
     Logger.recordOutput("SwerveChassisVelocities/Setpoints", discreteSpeeds);
 
-    // Send setpoints to modules
+    // Send setpoints to modules, collecting the optimized states they actually applied
+    SwerveModuleVelocity[] optimizedStates = new SwerveModuleVelocity[4];
     for (int i = 0; i < 4; i++) {
-      modules[i].runSetpoint(setpointStates[i]);
+      optimizedStates[i] = modules[i].runSetpoint(setpointStates[i]);
     }
 
-    // Log optimized setpoints (runSetpoint mutates each state)
-    Logger.recordOutput("SwerveStates/SetpointsOptimized", setpointStates);
+    // Log optimized setpoints
+    Logger.recordOutput("SwerveStates/SetpointsOptimized", optimizedStates);
   }
 
   /** Runs the drive in a straight line with the specified drive output. */
@@ -150,7 +154,7 @@ public class Drive extends SubsystemBase {
   public void stopWithX() {
     Rotation2d[] headings = new Rotation2d[4];
     for (int i = 0; i < 4; i++) {
-      headings[i] = DriveConstants.moduleTranslations[i].getAngle();
+      headings[i] = DriveConstants.moduleTranslations[i].getAngle().orElse(Rotation2d.ZERO);
     }
     kinematics.resetHeadings(headings);
     stop();
@@ -158,7 +162,7 @@ public class Drive extends SubsystemBase {
 
   /** Returns the module states (turn angles and drive velocities) for all of the modules. */
   @AutoLogOutput(key = "SwerveStates/Measured")
-  private SwerveModuleVelocity[] getModuleVelocities() {
+  public SwerveModuleVelocity[] getModuleVelocities() {
     SwerveModuleVelocity[] states = new SwerveModuleVelocity[4];
     for (int i = 0; i < 4; i++) {
       states[i] = modules[i].getVelocity();

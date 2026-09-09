@@ -7,8 +7,8 @@
 
 package first.robot.subsystems.drive;
 
-import org.wpilib.math.geometry.Rotation2d;
 import org.littletonrobotics.junction.AutoLog;
+import org.wpilib.math.geometry.Rotation2d;
 
 public interface ModuleIO {
   @AutoLog
@@ -21,8 +21,14 @@ public interface ModuleIO {
     public double driveTorqueCurrentAmps = 0.0;
 
     public boolean turnConnected = false;
+    public boolean turnEncoderConnected = false;
+
+    /** Raw CANcoder reading, before the calibration offset. Used to find encoder offsets. */
     public Rotation2d turnAbsolutePosition = new Rotation2d();
+
+    /** Calibrated module heading. Zero means the wheel points straight forward. */
     public Rotation2d turnPosition = new Rotation2d();
+
     public double turnVelocityRadPerSec = 0.0;
     public double turnAppliedVolts = 0.0;
     public double turnSupplyCurrentAmps = 0.0;

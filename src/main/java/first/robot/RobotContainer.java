@@ -4,23 +4,20 @@
 
 package first.robot;
 
-
-import org.wpilib.math.geometry.Pose2d;
-import org.wpilib.math.geometry.Rotation2d;
-import org.wpilib.driverstation.GenericHID;
-// import org.wpilib.wpilibj.XboxController;
-import org.wpilib.command2.Command;
-import org.wpilib.command2.Commands;
-import org.wpilib.driverstation.Gamepad;
 import first.robot.commands.DriveCommands;
 import first.robot.subsystems.drive.Drive;
 import first.robot.subsystems.drive.DriveConstants;
 import first.robot.subsystems.drive.GyroIO;
-import first.robot.subsystems.drive.GyroIOOnboardIMU;
+import first.robot.subsystems.drive.GyroIOPigeon2;
 import first.robot.subsystems.drive.ModuleIO;
 import first.robot.subsystems.drive.ModuleIOSim;
 import first.robot.subsystems.drive.ModuleIOTalonFX;
-import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
+import org.littletonrobotics.junction.networktables.LoggedNetworkChooser;
+import org.wpilib.command2.Command;
+import org.wpilib.command2.Commands;
+import org.wpilib.command2.button.CommandGamepad;
+import org.wpilib.math.geometry.Pose2d;
+import org.wpilib.math.geometry.Rotation2d;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -30,31 +27,31 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
  */
 public class RobotContainer {
   // Subsystems
-  private Drive drive;
+  private final Drive drive;
 
-  // Controller
-  private final Gamepad controller = new Gamepad(0);
+  // Controller. CommandGamepad uses controller-agnostic names: faceDown/faceRight/faceLeft/faceUp
+  // are A/B/X/Y on an Xbox pad.
+  private final CommandGamepad controller = new CommandGamepad(0);
 
   // Dashboard inputs
-  private final LoggedDashboardChooser<Command> autoChooser;
+  private final LoggedNetworkChooser<Command> autoChooser;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    if (Constants.getMode() != Constants.Mode.REPLAY) {
-      switch (Constants.getRobot()) {
-        case DEVBOT:
+    switch (Constants.getMode()) {
+      case REAL ->
           // Real robot, instantiate hardware IO implementations
           drive =
               new Drive(
-                  new GyroIOOnboardIMU(),
+                  new GyroIOPigeon2(),
                   new ModuleIOTalonFX(DriveConstants.moduleConfigs[0]),
                   new ModuleIOTalonFX(DriveConstants.moduleConfigs[1]),
                   new ModuleIOTalonFX(DriveConstants.moduleConfigs[2]),
                   new ModuleIOTalonFX(DriveConstants.moduleConfigs[3]));
-          break;
 
-        case SIMBOT:
-          // Sim robot, instantiate physics sim IO implementations
+      case SIM ->
+          // Sim robot, instantiate physics sim IO implementations. There is no Pigeon sim, so the
+          // heading comes from the module kinematics instead.
           drive =
               new Drive(
                   new GyroIO() {},
@@ -62,9 +59,8 @@ public class RobotContainer {
                   new ModuleIOSim(),
                   new ModuleIOSim(),
                   new ModuleIOSim());
-          break;
 
-        default:
+      default ->
           // Replayed robot, disable IO implementations
           drive =
               new Drive(
@@ -73,42 +69,27 @@ public class RobotContainer {
                   new ModuleIO() {},
                   new ModuleIO() {},
                   new ModuleIO() {});
-          break;
-      }
-    }
-
-    // No-op implementations for replay
-    if (drive == null) {
-      drive =
-          new Drive(
-              new GyroIO() {},
-              new ModuleIO() {},
-              new ModuleIO() {},
-              new ModuleIO() {},
-              new ModuleIO() {});
     }
 
     // Set up auto routines
-    autoChooser = new LoggedDashboardChooser<>("Auto Choices");
+    autoChooser = new LoggedNetworkChooser<>("/SmartDashboard/Auto Choices");
+    autoChooser.addDefault("None", Commands.none());
 
-    // Set up SysId routines
-    autoChooser.addDefaultOption(
+    // Set up characterization routines
+    autoChooser.add(
         "Drive Wheel Radius Characterization", DriveCommands.wheelRadiusCharacterization(drive));
-    autoChooser.addOption(
+    autoChooser.add(
         "Drive Simple FF Characterization", DriveCommands.feedforwardCharacterization(drive));
 
     // Configure the button bindings
     configureButtonBindings();
   }
 
-  /**
-   * Use this method to define your button->command mappings. Buttons can be created by
-   * instantiating a {@link GenericHID} or one of its subclasses ({@link
-   * org.wpilib.wpilibj.Joystick} or {@link XboxController}), and then passing it to a {@link
-   * org.wpilib.wpilibj2.command.button.JoystickButton}.
-   */
+  /** Maps driver inputs to commands. */
   private void configureButtonBindings() {
-    // Default command, normal field-relative drive
+    // Default command, normal field-relative drive.
+    // +X on the field is away from the driver station and +Y is to the left, so forward on the
+    // stick (which reads negative) maps to +X and left (also negative) maps to +Y.
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
@@ -116,27 +97,25 @@ public class RobotContainer {
             () -> -controller.getLeftX(),
             () -> -controller.getRightX()));
 
-    // Lock to 0° when A button is held
+    // Lock to 0 degrees while A is held
     controller
-        .a()
+        .faceDown()
         .whileTrue(
             DriveCommands.joystickDriveAtAngle(
                 drive,
                 () -> -controller.getLeftY(),
                 () -> -controller.getLeftX(),
-                () -> new Rotation2d()));
+                () -> Rotation2d.ZERO));
 
-    // Switch to X pattern when X button is pressed
-    controller.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // Switch to X pattern when X is pressed
+    controller.faceLeft().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
-    // Reset gyro to 0° when B button is pressed
+    // Reset the gyro heading to 0 degrees when B is pressed
     controller
-        .b()
+        .faceRight()
         .onTrue(
             Commands.runOnce(
-                    () ->
-                        drive.setPose(
-                            new Pose2d(drive.getPose().getTranslation(), new Rotation2d())),
+                    () -> drive.setPose(new Pose2d(drive.getPose().getTranslation(), Rotation2d.ZERO)),
                     drive)
                 .ignoringDisable(true));
   }
