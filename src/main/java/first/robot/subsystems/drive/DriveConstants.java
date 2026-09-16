@@ -63,26 +63,26 @@ public class DriveConstants {
   public static final ModuleConfig[] moduleConfigs = {
     // FL
     ModuleConfig.builder()
-        .driveMotorId(12)
-        .turnMotorId(9)
-        .encoderId(2)
+        .driveMotorId(2)
+        .turnMotorId(1)
+        .encoderId(16)
         .encoderOffset(Rotation2d.fromRadians(0.9022009671847623))
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
     // FR
     ModuleConfig.builder()
-        .driveMotorId(2)
-        .turnMotorId(10)
-        .encoderId(3)
+        .driveMotorId(4)
+        .turnMotorId(3)
+        .encoderId(1)
         .encoderOffset(Rotation2d.fromRadians(1.6663099495963458))
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
     // BL
     ModuleConfig.builder()
-        .driveMotorId(15)
-        .turnMotorId(11)
+        .driveMotorId(6)
+        .turnMotorId(5)
         .encoderId(4)
         .encoderOffset(Rotation2d.fromRadians(-0.09896592242077659))
         .turnInverted(true)
@@ -90,9 +90,9 @@ public class DriveConstants {
         .build(),
     // BR
     ModuleConfig.builder()
-        .driveMotorId(3)
-        .turnMotorId(8)
-        .encoderId(5)
+        .driveMotorId(8)
+        .turnMotorId(7)
+        .encoderId(4)
         .encoderOffset(Rotation2d.fromRadians(-3.051832863487227))
         .turnInverted(true)
         .encoderInverted(false)
